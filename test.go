@@ -1,6 +1,7 @@
 package main
 //this is a package for test
 import (
+  "test/packageone"
   "github.com/golang/glog"
   "fmt"
   "runtime"
@@ -22,6 +23,7 @@ import (
   "encoding/hex"
   "encoding/json"
   // "github.com/jinzhu/now"
+  "github.com/cihub/seelog"
 )
 
 func testGetenv(){
@@ -323,8 +325,8 @@ func testHttpServer(){
 }
 
 type jsonmsg struct {
-  result bool
-  msg string
+  Result bool `json:"result"`
+  Msg string  `json:"msg"`
 }
 
 func testHttpClient(){
@@ -344,7 +346,7 @@ func testHttpClient(){
   }
   form := url.Values{}
   var ts = strconv.FormatInt(time.Now().Unix(), 10)
-  var email = "007pig@gmail.com"
+  var email = "tangzc64@163.com"
   form.Set("email", email)
   form.Set("ts", ts)
 
@@ -357,7 +359,7 @@ func testHttpClient(){
   glog.Infoln("md5 hash:", hashstring)
   glog.Infoln("format int:", strconv.FormatInt(time.Now().Unix(), 10))
   b := strings.NewReader(form.Encode())
-  request, _ := http.NewRequest("POST", "http://10.0.20.246/proapi/checkemail", b)
+  request, _ := http.NewRequest("POST", "https://api.btcc.com/proapi/checkemail", b)
   request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
   response, err := client.Do(request)
@@ -374,7 +376,10 @@ func testHttpClient(){
   glog.Infoln("get response data:", string(body))
   res := jsonmsg{}
   json.Unmarshal(body, &res)
-  glog.Infoln("response result:", res.result)
+  glog.Infoln("response result:", res.Result)
+  if res.Result {
+    glog.Infoln("hahahhahaha, email exist")
+  }
 
 }
 
@@ -398,7 +403,53 @@ func testFormatTime(){
   glog.Infoln("time duration:", timestap.Sub(timestap2))
 }
 
+func testSeelog(){
+  logger, err := seelog.LoggerFromConfigAsFile("logconfig.xml")
+
+  if err != nil {
+      seelog.Critical("err parsing config log file", err)
+      return
+  }
+  seelog.ReplaceLogger(logger)
+
+  for i := 0; ; i++{
+    seelog.Error("seelog", i)
+    seelog.Info("seelog info", i)
+    seelog.Debug("seelog debug", i)
+    time.Sleep(time.Minute*1)
+  }
+
+}
+
+func testSeelogConfigButLogtoWriteLog(){
+    logger, err := seelog.LoggerFromConfigAsFile("logconfig.xml")
+    if err != nil {
+      seelog.Critical("err parsing config log file", err)
+      return
+    }
+    seelog.ReplaceLogger(logger)
+
+    defer seelog.Flush()
+    one.One()
+    params := "btcc"
+
+    for i := 0; i < 999999; i++{
+      seelog.Error("seelog", i)
+      seelog.Info("seelog info", i)
+      seelog.Debug("seelog debug", i)
+      seelog.Critical("critical error test", i)
+      seelog.Infof("this is a string %s", params)
+      if i == 99999 {
+        time.Sleep(time.Second * 1)
+      }
+    }
+
+}
+
+
 func main(){
+    // flag.Set("log_dir", "./logs")
+    // flag.Set("alsologtostderr", "true")
     flag.Set("logtostderr", "true")
     flag.Parse()
 
@@ -417,7 +468,9 @@ func main(){
     //testFormatTime()
     // testgettimestamp()
     //testgetuserinfo()
-     writeUsertoMongo()
+    //  writeUsertoMongo()
     // testHttpServer()
-    //testHttpClient()
+    // testHttpClient()
+    //testSeelog()
+    testSeelogConfigButLogtoWriteLog()
 }
