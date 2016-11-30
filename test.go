@@ -24,6 +24,7 @@ import (
   "encoding/json"
   // "github.com/jinzhu/now"
   "github.com/cihub/seelog"
+  "gopkg.in/redis.v3"
 )
 
 func testGetenv(){
@@ -446,6 +447,176 @@ func testSeelogConfigButLogtoWriteLog(){
 
 }
 
+func testToLower(){
+  str := "0x0eE4c03776EFe873465cF3d999f09552a124c841"
+  str = strings.ToLower(str)
+  fmt.Println("str:", str)
+}
+
+//testRedis 使用散列来存储用户数据, value的类型为自定义结构体，将其序列化为json数据后存储值散列中
+type redisClient struct {
+  cli *redis.Client
+  prefix string
+}
+
+type userShare struct {
+  Sharetimes int32
+  Value      int64
+}
+
+func join(args ...interface{}) string {
+	s := make([]string, len(args))
+	for i, v := range args {
+		switch v.(type) {
+		case string:
+			s[i] = v.(string)
+		case int64:
+			s[i] = strconv.FormatInt(v.(int64), 10)
+		case uint64:
+			s[i] = strconv.FormatUint(v.(uint64), 10)
+		case float64:
+			s[i] = strconv.FormatFloat(v.(float64), 'f', 0, 64)
+		case bool:
+			if v.(bool) {
+				s[i] = "1"
+			} else {
+				s[i] = "0"
+			}
+		default:
+			panic("Invalid type specified for conversion")
+		}
+	}
+	return strings.Join(s, ":")
+}
+
+func (redis *redisClient)formatKey(args ...interface{})string{
+  return join(redis.prefix, join(args...))
+}
+
+func (redis *redisClient)setRedis(usersMap map[string]userShare){
+  tx := redis.cli.Multi()
+  defer tx.Close()
+
+  tx.Exec(func()error{
+      //value to json object
+      for key, value := range usersMap {
+        v, _ := json.Marshal(value)
+        tx.HSet(redis.formatKey("usershares"), key, string(v))
+      }
+    return nil
+  })
+}
+
+func (redis *redisClient)getRedis(){
+    cmd := redis.cli.HGetAllMap(redis.formatKey("usershares"))
+    if cmd.Err() != nil {
+      fmt.Println(cmd.Err())
+      return
+    }
+    userMap, _ := cmd.Result()
+    for key, value := range userMap {
+      fmt.Println("key:", key)
+      temp := []byte(value)
+      var data userShare
+      json.Unmarshal(temp, &data)
+      fmt.Println("shareTimes :", data.Sharetimes, "value :", data.Value)
+    }
+}
+
+func testRedis(){
+  client := redis.NewClient(&redis.Options{
+      Addr:"127.0.0.1:6379",
+      Password: "",
+      DB: 0,
+      PoolSize:10,
+  })
+  backend := redisClient{cli:client, prefix:"test"}
+  usersMap := make(map[string]userShare)
+  usersMap["111111"] = userShare{Sharetimes:int32(10), Value:int64(111111)}
+  usersMap["222222"] = userShare{Sharetimes:int32(10), Value:int64(222222)}
+
+  // backend.setRedis(usersMap)
+  backend.getRedis()
+}
+//=================================================
+
+func testPass(arg ...string){
+  t := reflect.TypeOf(arg)
+  fmt.Println("type:", t)
+
+  fmt.Println(arg)
+}
+
+func testPassParamPPP(){
+  strs := []string{"1", "2", "3"}
+  testPass("nihao", "tac")
+  testPass(strs...)
+}
+
+func testStructUnderLine(){
+  temp := one.A{}
+  temp.C = 16
+}
+
+type b struct {
+  one.B
+}
+
+func (b *b)say(word string){
+    fmt.Println("say:", word)
+}
+
+func testInheir(){
+  temp := b{}
+  temp.say("youyou")
+}
+
+func addvalue(m map[string]int){
+  m["2"] = 2
+}
+
+type struct1 struct {
+  A int
+}
+
+func testMap(){
+  temp := make(map[string]int)
+  temp["1"] = 1
+  addvalue(temp)
+  temp["3"] = 3
+  for key, v := range temp{
+    fmt.Println("key:", key, "value:", v)
+  }
+  fmt.Println("==============")
+  tempmap := make(map[string]struct1)
+  tempmap["1"] = struct1{A:111}
+  tempmap["2"] = struct1{A:222}
+  for key, v := range tempmap {
+    fmt.Println("key:", key, "value:", v)
+  }
+}
+//===================test map to json object and Unmarshal
+type structMap struct {
+  A int32
+  B int64
+}
+
+func testMapToJSON(){
+  tempMap := make(map[string]structMap)
+  tempMap["111111"] = structMap{A: int32(123), B: int64(321)}
+  tempMap["222222"] = structMap{A: int32(456), B: int64(654)}
+
+  v, _ := json.Marshal(tempMap)
+
+  fmt.Println("Marshal value :", v)
+
+  var data  map[string]structMap
+  json.Unmarshal(v, &data)
+  for key, value := range data{
+    fmt.Println("key:", key)
+    fmt.Println("struct A:", value.A, "struct B:", value.B)
+  }
+}
 
 func main(){
     // flag.Set("log_dir", "./logs")
@@ -472,5 +643,12 @@ func main(){
     // testHttpServer()
     // testHttpClient()
     //testSeelog()
-    testSeelogConfigButLogtoWriteLog()
+    // testSeelogConfigButLogtoWriteLog()
+    // testToLower()
+    testRedis()
+    // testPassParamPPP()
+    //testStructUnderLine()
+    // testInheir()
+    // testMap()
+    // testMapToJSON()
 }
