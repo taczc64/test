@@ -397,7 +397,23 @@ func testFormatTime(){
   glog.Infoln("time.Unix().format():", time.Unix(1478079819, 0).Format("2006-01-02 15:04:05"))// time.Unix().format(): 2016-11-02 17:43:39
   glog.Infoln("***********************")
   timestap, _ := time.Parse("2006-01-02 15:04:05", "2016-11-02 17:47:10")
+  h, m, s := timestap.Clock()
+  glog.Infoln("hour:", h, "min:", m, "second:", s)
+  year, month, day := timestap.Date()
+  glog.Infoln("year:", year, "month:", month, "day:", day)
 
+
+  times, _ := time.Parse("2006-01-02 15:04:05", "2016-12-12 17:47:10")
+  y1, m1, d1 := times.Date()
+  if y1 == year {
+      glog.Infoln("year equal")
+  }
+  if m1 != month {
+      glog.Infoln("month not equal")
+  }
+  if d1 == day {
+      glog.Infoln("day equal")
+  }
   timestap2, _ := time.Parse("2006-01-02 15:04:05", "2016-11-02 16:47:10")
 
 
@@ -539,6 +555,73 @@ func testRedis(){
   backend.getRedis()
 }
 //=================================================
+func testRedis2(){
+  client := redis.NewClient(&redis.Options{
+      Addr:"127.0.0.1:6379",
+      Password: "",
+      DB: 0,
+      PoolSize:10,
+  })
+  backend := redisClient{cli:client, prefix:"test"}
+
+  //pop and push new block to the redis
+  blockshare := make(map[string]int64)
+  blockshare["7777"] = 7777
+  blockshare["8888"] = 8888
+  backend.setRedis2(blockshare)
+  backend.getRedis2()
+}
+
+func (backend *redisClient)setRedis2(blockshare map[string]int64){
+  var shareN = 3
+  v, _ := json.Marshal(blockshare)
+
+	lencmd := backend.cli.LLen("test:nblocksshares")
+	n, _ := lencmd.Result()
+	if lencmd.Err() == redis.Nil || int(n) < shareN{
+		backend.cli.RPush("test:nblocksshares", string(v))
+    fmt.Println("rpush success")
+    return
+	}else if lencmd.Err() != nil {
+    fmt.Println(lencmd.Err())
+	}
+
+	tx := backend.cli.Multi()
+	defer tx.Close()
+	_, err := tx.Exec(func()error{
+		tx.LPop("test:nblocksshares")
+		tx.RPush("test:nblocksshares", string(v))
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
+    return
+	}
+}
+
+func (backend *redisClient)getRedis2(){
+  cmd := backend.cli.LRange("test:nblocksshares", 0, -1)
+	if cmd.Err() == redis.Nil { //first time, this key dont exist, so return nil
+		fmt.Println(cmd.Err())
+	}else if cmd.Err() != nil {
+		fmt.Println(cmd.Err())
+    return
+	}
+	nblocks := make([]map[string]int64, 0)
+	stringArray, _ := cmd.Result()
+	for _, substring := range stringArray {
+			var data map[string]int64
+			json.Unmarshal([]byte(substring), &data)
+			nblocks = append(nblocks, data)
+	}
+  for _, block := range nblocks {
+    for key, value := range block {
+      fmt.Println("user key :", key, "user share :", value)
+    }
+    fmt.Println("==========================")
+  }
+}
+//=================================================
 
 func testPass(arg ...string){
   t := reflect.TypeOf(arg)
@@ -618,6 +701,114 @@ func testMapToJSON(){
   }
 }
 
+func testInt64(){
+    var num int64 = 601
+    num = num * (1/2)
+    fmt.Println("value:", num)
+}
+
+func funcA(temp *[]map[int]int){
+  var tempmap = make(map[int]int)
+  tempmap[1] = 1
+  *temp = append(*temp, tempmap)
+}
+
+func funcB(temp *[]map[int]int){
+  tempmap := make(map[int]int)
+  tempmap[2] = 2
+  *temp = append(*temp, tempmap)
+}
+
+func funcC()[]map[int]int{
+    temp := make([]map[int]int, 0)
+    for i := 0; i < 3; i++ {
+      t := make(map[int]int)
+      t[i] = i
+      temp = append(temp, t)
+    }
+    return temp
+}
+
+func funcD(temp *[]map[int]int){
+  // *temp = make([]map[int]int, 0)
+  for i := 0; i < 3; i++ {
+      t := make(map[int]int)
+      t[i] = i
+      *temp = append(*temp, t)
+    }
+}
+
+func testVarArea(){
+    a := 1
+    var temp []map[int]int
+    if a == 1 {
+      funcA(&temp)
+    }else if a == 2{
+      funcB(&temp)
+    }else {
+      // temp = funcC()
+      funcD(&temp)
+    }
+    fmt.Println("array:", len(temp))
+    fmt.Println("value:", temp)
+}
+
+//测试整点时间以及localTime
+func testTimeIntegerTime(){
+  t := time.Now().Local()
+  str := t.Format("2006-01-02 15:04:05")
+  fmt.Println(str)
+  for {
+      t = time.Now()
+      h, m, s := t.Clock()
+      fmt.Println("hour:", h, "min:", m, "second:", s)
+      if m == 0 && s <=10 {
+      fmt.Println("recording...., it's a integer clock")
+    }
+      time.Sleep(time.Second * 10)
+  }
+
+}
+
+func testStringSplit(){
+  tempstring := "123456:asdfgh:kkkk"
+  subs := strings.Split(tempstring, ":")
+  for _, str := range subs {
+    fmt.Println(str)
+  }
+}
+
+func testTimestampDecrease(){
+    t1, _ := time.Parse("2006-01-02 15:04:05", "2016-11-30 23:59:59")
+
+    t2, _ := time.Parse("2006-01-02 15:04:05", "2016-12-01 23:59:59")
+    glog.Infoln("time decrese:", t2.Unix()-t1.Unix())
+}
+
+func testGetIntegerTime(){
+  ti := time.Now().Unix()
+  t := time.Unix(ti, 0)
+  str := t.Format("2006-01-02 15:00:00")
+  fmt.Println("time:", str)
+
+  t2, err := time.Parse("2006-01-02 15:00:00", str)
+  if err != nil {
+    fmt.Println("error:", err)
+  }
+  temp := t2.Unix() - 3600
+  t = time.Unix(temp, 0)
+  str2 := t.Format("2006-01-02 15:00:00")
+  fmt.Println("time:", str2)
+
+  fmt.Println("==============")
+  stamp := time.Now().Local().Unix()
+  fmt.Println(time.Unix(stamp, 0).Format("2006-01-02 15:00:00"))
+  stamp = stamp - 3600
+  fmt.Println(time.Unix(stamp, 0).Format("2006-01-02 15:00:00"))
+  stamp = stamp - 3600
+  fmt.Println(time.Unix(stamp, 0).Format("2006-01-02 15:00:00"))
+}
+
 func main(){
     // flag.Set("log_dir", "./logs")
     // flag.Set("alsologtostderr", "true")
@@ -636,7 +827,7 @@ func main(){
     //testStructnil()
     // testPassStringAddr()
     //testwriteTimetoMongo()
-    //testFormatTime()
+    // testFormatTime()
     // testgettimestamp()
     //testgetuserinfo()
     //  writeUsertoMongo()
@@ -645,10 +836,17 @@ func main(){
     //testSeelog()
     // testSeelogConfigButLogtoWriteLog()
     // testToLower()
-    testRedis()
+    // testRedis()
+    // testRedis2()
     // testPassParamPPP()
     //testStructUnderLine()
     // testInheir()
     // testMap()
     // testMapToJSON()
+    // testInt64()
+    // testVarArea()
+    // testTimeIntegerTime()
+    // testStringSplit()
+    // testTimestampDecrease()
+    testGetIntegerTime()
 }
