@@ -143,6 +143,14 @@ const URL = "localhost:27017"
 var session *mgo.Session
 
 func testMongodb() {
+	var err error
+	session, err = mgo.Dial(URL)
+	if err != nil {
+		glog.Infoln("cannot connect to database, please check")
+		return
+	}
+	defer session.Close()
+	session.SetMode(mgo.Monotonic, true)
 	db := session.DB("test")
 	collection := db.C("c_one")
 	//update and insert
@@ -154,6 +162,33 @@ func testMongodb() {
 		glog.Infoln("upsert failed:", err)
 	}
 	fmt.Println("update info:", updateInfo)
+}
+
+type feeInfo struct {
+	Vip  float64 `bson:"vip"`
+	Norm float64 `bson:"normal"`
+}
+
+func testFindParamNil() {
+	var err error
+	session, err = mgo.Dial(URL)
+	if err != nil {
+		glog.Infoln("cannot connect to database, please check")
+		return
+	}
+	defer session.Close()
+	session.SetMode(mgo.Monotonic, true)
+
+	fees := feeInfo{}
+
+	db := session.DB("etc_pool")
+	collection := db.C("fee_info")
+	// updata := bson.M{"$set": bson.M{"email": []string{"11111@email.com", "22222@qq.com", "333333@163.com"}}}
+	err = collection.Find(nil).One(&fees)
+	if err != nil {
+		glog.Infoln("upsert failed:", err)
+	}
+	fmt.Println("fee info:", fees)
 }
 
 func testmongoConnect() {
@@ -938,6 +973,14 @@ func testAtoi() {
 	fmt.Println("err:", err)
 }
 
+func testSlice() {
+	slice := make([]int, 0)
+	for i := 0; i < 10; i++ {
+		slice = append(slice, i)
+	}
+	fmt.Println("slice data:", slice[0:0])
+}
+
 func main() {
 	// flag.Set("log_dir", "./logs")
 	// flag.Set("alsologtostderr", "true")
@@ -948,7 +991,7 @@ func main() {
 	//testDecreseGC()
 	//testList()
 	//testInterface()
-	//testMongodb()
+	// testMongodb()
 	//testArrayAndSlice()
 	// testmongoConnect()
 	// testReflect()
@@ -985,5 +1028,7 @@ func main() {
 	// testStringlen()
 	// testStructValuePass()
 	// testStructReflect()
-	testAtoi()
+	// testAtoi()
+	// testSlice()
+	testFindParamNil()
 }
