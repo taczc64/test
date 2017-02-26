@@ -981,6 +981,31 @@ func testSlice() {
 	fmt.Println("slice data:", slice[0:0])
 }
 
+func testRedisPubSub() {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+		PoolSize: 10,
+	})
+	pubsub, err := client.Subscribe("pool.blocknotify1st")
+	if err != nil {
+		glog.Info("subscribe redis error:", err)
+	}
+	defer pubsub.Close()
+	var dur time.Duration
+	for {
+		t := time.Now()
+		glog.Info("waiting time...:", dur)
+		msg, err := pubsub.ReceiveMessage()
+		if err != nil {
+			glog.Info("get message error:", err)
+		}
+		dur = time.Since(t)
+		glog.Info("channel:", msg.Channel, "msg :", msg.Payload)
+	}
+}
+
 func main() {
 	// flag.Set("log_dir", "./logs")
 	// flag.Set("alsologtostderr", "true")
@@ -1030,5 +1055,6 @@ func main() {
 	// testStructReflect()
 	// testAtoi()
 	// testSlice()
-	testFindParamNil()
+	// testFindParamNil()
+	testRedisPubSub()
 }
