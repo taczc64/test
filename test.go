@@ -1006,6 +1006,12 @@ func testRedisPubSub() {
 	}
 }
 
+func testInterfaceCommaOK() string {
+	var temp interface{}
+	temp = "this is a test string"
+	return temp.(string)
+}
+
 func main() {
 	// flag.Set("log_dir", "./logs")
 	// flag.Set("alsologtostderr", "true")
@@ -1057,4 +1063,5 @@ func main() {
 	// testSlice()
 	// testFindParamNil()
 	testRedisPubSub()
+	// fmt.Println(testInterfaceCommaOK())
 }
