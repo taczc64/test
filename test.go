@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"test/appcli"
 	"test/packageone"
 	"time"
 	// "github.com/jinzhu/now"
@@ -1012,6 +1013,17 @@ func testInterfaceCommaOK() string {
 	return temp.(string)
 }
 
+var (
+	ee string
+	ff = testInterfaceCommaOK()
+)
+
+func testVar() {
+	ee = "this is ee"
+	fmt.Println(ee)
+	fmt.Println(ff)
+}
+
 func main() {
 	// flag.Set("log_dir", "./logs")
 	// flag.Set("alsologtostderr", "true")
@@ -1062,6 +1074,8 @@ func main() {
 	// testAtoi()
 	// testSlice()
 	// testFindParamNil()
-	testRedisPubSub()
+	// testRedisPubSub()
 	// fmt.Println(testInterfaceCommaOK())
+	// testVar()
+	cliTest.TestCLi()
 }
