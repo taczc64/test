@@ -7,14 +7,14 @@ import (
 )
 
 func TestCLi() {
-	os.Args = []string{"greet", "--name", "tac"}
+	os.Args = []string{"greet", "--aa", "tac"}
 	app := cli.NewApp()
 	app.Name = "greet"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{Name: "waihao", Value: "bob", Usage: "a name to say"},
+		cli.StringFlag{Name: "aa", Value: "bob", Usage: "a name to say"},
 	}
 	app.Action = func(c *cli.Context) error {
-		fmt.Printf("hello %v\n", c.String("waihao"))
+		fmt.Printf("hello %v\n", c.String("aa"))
 		return nil
 	}
 	app.UsageText = "app [first_arg] [second_arg]"
