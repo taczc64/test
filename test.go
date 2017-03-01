@@ -21,12 +21,13 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"test/appcli"
+	// "test/appcli"
 	"test/packageone"
 	"time"
 	// "github.com/jinzhu/now"
 	"github.com/cihub/seelog"
 	"gopkg.in/redis.v3"
+	"test/reflect"
 )
 
 func testGetenv() {
@@ -1077,5 +1078,7 @@ func main() {
 	// testRedisPubSub()
 	// fmt.Println(testInterfaceCommaOK())
 	// testVar()
-	cliTest.TestCLi()
+	// cliTest.TestCLi()
+	// ref.TestReflect1()
+	ref.TestReflect2()
 }
