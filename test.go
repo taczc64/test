@@ -28,6 +28,7 @@ import (
 	"github.com/cihub/seelog"
 	"gopkg.in/redis.v3"
 	"test/reflect"
+	_ "test/testinit"
 )
 
 func testGetenv() {
