@@ -21,10 +21,10 @@ func BenchmarkZipCompress(b *testing.B) {
 //
 // }
 //
-// func BenchmarkZipDecompress(b *testing.B) {
-//
-// }
-//
+func BenchmarkZipDecompress(b *testing.B) {
+
+}
+
 // func BenchmarkLZ4Decompress(b *testing.B) {
 //
 // }

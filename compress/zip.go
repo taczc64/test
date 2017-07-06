@@ -50,5 +50,28 @@ func ZipCompress() {
 }
 
 func ZipDecompress() {
-
+	os.Mkdir("zipdir/", 0777)
+	zipf, err := zip.OpenReader("cailiao.zip")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer zipf.Close()
+	for _, file := range zipf.File {
+		subzip, err := file.Open()
+		if err != nil {
+			fmt.Println("open sub zip err :", err)
+		}
+		f, err := os.Create("zipdir/" + file.Name)
+		if err != nil {
+			fmt.Println("create sub file err :", err)
+			continue
+		}
+		defer f.Close()
+		//TODO dont use copy, just write it block by block
+		_, err = io.Copy(f, subzip)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }
