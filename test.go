@@ -27,7 +27,7 @@ import (
 	// "github.com/jinzhu/now"
 	"github.com/cihub/seelog"
 	"gopkg.in/redis.v3"
-	"test/reflect"
+	// "test/reflect"
 	_ "test/testinit"
 )
 
@@ -1081,5 +1081,5 @@ func main() {
 	// testVar()
 	// cliTest.TestCLi()
 	// ref.TestReflect1()
-	ref.TestReflect2()
+	// ref.TestReflect2()
 }
