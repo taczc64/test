@@ -57,6 +57,7 @@ func ZipDecompress() {
 		return
 	}
 	defer zipf.Close()
+	buf := make([]byte, buffersize)
 	for _, file := range zipf.File {
 		subzip, err := file.Open()
 		if err != nil {
@@ -68,10 +69,16 @@ func ZipDecompress() {
 			continue
 		}
 		defer f.Close()
-		//TODO dont use copy, just write it block by block
-		_, err = io.Copy(f, subzip)
-		if err != nil {
-			fmt.Println(err)
+		freader := bufio.NewReader(subzip)
+		for {
+			n, err := freader.Read(buf)
+			if err != nil && err == io.EOF {
+				break
+			}
+			_, err = f.Write(buf[:n])
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }
