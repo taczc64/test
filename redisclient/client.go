@@ -17,7 +17,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	pubsub, err := client.Subscribe("tx-channel")
+	pubsub, err := client.Subscribe("eventmessage")
 	if err != nil {
 		fmt.Println(err)
 		return

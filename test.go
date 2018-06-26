@@ -2,25 +2,28 @@ package main
 
 //this is a package for test
 import (
+	"bufio"
 	"container/list"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/golang/glog"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	// "test/appcli"
 	"test/packageone"
 	"time"
@@ -28,8 +31,11 @@ import (
 	"github.com/cihub/seelog"
 	"gopkg.in/redis.v3"
 	// "test/reflect"
-	_ "test/testinit"
 )
+
+func init() {
+	runtime.GOMAXPROCS(2)
+}
 
 func testGetenv() {
 	glog.Infoln("RESOLVE_PAYOUT====", os.Getenv("RESOLVE_PAYOUT"))
@@ -460,6 +466,10 @@ func testFormatTime() {
 	timestap2, _ := time.Parse("2006-01-02 15:04:05", "2016-11-02 16:47:10")
 
 	glog.Infoln("time duration:", timestap.Sub(timestap2))
+
+	glog.Infoln("************************************")
+
+	glog.Infoln("time.Unix().format():", time.Unix(time.Now().Unix(), 0).Format("20060102"))
 }
 
 func testSeelog() {
@@ -1026,6 +1036,175 @@ func testVar() {
 	fmt.Println(ff)
 }
 
+func testStringCompare() {
+	str1 := "201707140017"
+	datestring := time.Unix(time.Now().Unix(), 0).Format("20060102")
+	if str1[:8] == datestring {
+		glog.Infoln("date :", str1[:8])
+	}
+	var number string
+	number = str1[8:]
+	num, _ := strconv.Atoi(number)
+	glog.Infoln("out int :", num)
+	d := strconv.Itoa(num)
+	glog.Infoln("num :", d, "len :", len(d))
+	for len(d) < 4 {
+		d = "0" + d
+	}
+	glog.Infoln("num :", d, "len :", len(d))
+	str1b := []byte(str1)
+	str1b = append(str1b, []byte(","+"201707140018")...)
+
+	glog.Infoln("after append :", string(str1b))
+}
+
+func testStringArray() {
+	var strs []string
+	for _, val := range []string{"1", "2", "3"} {
+		strs = append(strs, val)
+	}
+	glog.Infoln("strs :", strs)
+
+	strs = []string{"4", "5", "6"}
+	glog.Infoln("strs :", strs)
+}
+
+func testArrayCopy() {
+	var arr1 [3]int
+	var arr2 [3]int
+	for i := 0; i < 3; i++ {
+		arr1[i] = i
+	}
+	arr2 = arr1
+	fmt.Printf("arr1 %v ,address arr1 %p :\n", arr1, &arr1)
+	fmt.Printf("arr2 %v ,address arr2 %p :\n", arr2, &arr2)
+	fmt.Println("=========================")
+
+	var slice1 []int
+	var slice2 []int
+	for i := 0; i < 5; i++ {
+		slice1 = append(slice1, i)
+	}
+	slice2 = slice1
+	fmt.Println(slice1, &slice1)
+	fmt.Println(slice2, &slice2)
+}
+
+func testCopySlice() {
+	slice := make([]int, 10)
+	for i := 0; i < 10; i++ {
+		slice[i] = i
+	}
+	fmt.Println("origin :", slice)
+	changeslice(slice)
+	fmt.Println("now :", slice)
+}
+
+func changeslice(slice []int) {
+	slice[0] = 88
+}
+
+func testInterfaceSwitch() {
+	var temp interface{}
+	temp = 123
+	switch temp.(type) {
+	case int:
+		fmt.Println("this is int")
+	case string:
+		fmt.Println("this is string")
+	case float32:
+		fmt.Println("this is float")
+	default:
+		fmt.Println("default type")
+	}
+}
+
+func testdefer() {
+	defer fmt.Println("1")
+	defer fmt.Println("2")
+	defer fmt.Println("3")
+	fmt.Println("let's begin ...")
+}
+
+func testSliceandArrayCopy() {
+	slice := make([]int, 10)
+	for i := 0; i < 10; i++ {
+		slice[i] = i
+	}
+
+	slice2 := make([]int, 10)
+	copy(slice2[:], slice[:])
+	fmt.Println("slice2 :", slice2)
+	////array
+
+	var array [10]int
+	for i := 0; i < 10; i++ {
+		array[i] = i
+	}
+
+	var array2 [10]int
+	copy(array2[:], array[:])
+
+	fmt.Println("array2 :", array2)
+}
+
+func testRoutine() {
+	for {
+		go fmt.Print(1)
+		fmt.Print(0)
+	}
+
+}
+
+type Payload struct {
+	Abi      string        `json:"abi"`
+	Function string        `json:"function"`
+	Params   []interface{} `json:"params"`
+}
+
+func transferObjecttoString() {
+	load := Payload{
+		Abi:      "this is abi string",
+		Function: "this is function",
+		Params:   []interface{}{123, 456},
+	}
+	b, err := json.Marshal(load)
+	if err != nil {
+		fmt.Println("err :", err)
+		return
+	}
+	fmt.Println("marshal string :", string(b))
+}
+
+func genEvmAccount() {
+	//touch new file
+	f, err := os.Create("./accounts.txt")
+	if err != nil {
+		fmt.Println("err when create file:", err)
+		return
+	}
+	defer f.Close()
+
+	// cmd.Stdout = f
+	//gen evm account
+	for i := 1; i < 201; i++ {
+		w := bufio.NewWriter(f)
+		num := fmt.Sprintf("%d", i)
+		fmt.Fprintln(w, num)
+		cmd := exec.Command("./chorustool", "account", "geneth")
+		bs, err := cmd.Output()
+		if err != nil {
+			fmt.Println("write key err :", err)
+			return
+		}
+		fmt.Println(string(bs))
+		fmt.Fprintln(w, string(bs))
+		w.Flush()
+	}
+
+	//write to file
+}
+
 func main() {
 	// flag.Set("log_dir", "./logs")
 	// flag.Set("alsologtostderr", "true")
@@ -1082,4 +1261,15 @@ func main() {
 	// cliTest.TestCLi()
 	// ref.TestReflect1()
 	// ref.TestReflect2()
+	// testStringCompare()
+	// testStringArray()
+	//testArrayCopy()
+	//testCopySlice()
+
+	//testInterfaceSwitch()
+	//testdefer()
+	//testSliceandArrayCopy()
+	// testRoutine()
+	//transferObjecttoString()
+	//genEvmAccount()
 }
