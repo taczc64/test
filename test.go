@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 	"gopkg.in/mgo.v2"
@@ -1205,6 +1206,85 @@ func genEvmAccount() {
 	//write to file
 }
 
+func testLabel() {
+	fmt.Println("this is test for label")
+OUTER:
+	for i := 0; i < 10; i++ {
+		fmt.Println("outer for ", i)
+		for j := 0; j < 5; j++ {
+			if j > 3 {
+				fmt.Println("inner for ", j)
+				//break OUTER
+				goto OUTER
+			}
+
+		}
+	}
+	fmt.Println("over...")
+}
+
+//测试内存模型
+func testMemoryModel() {
+	wg := sync.WaitGroup{}
+	var count int
+	//var ch = make(chan bool, 1)
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			//ch <- true
+			count++
+			time.Sleep(time.Millisecond)
+			count--
+			//<-ch
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func testCloseChannel() {
+	//donnt judge close channel
+	//c := make(chan bool, 5)
+	//c <- true
+	//c <- true
+	//c <- true
+	//close(c)
+	//for {
+	//	fmt.Println(<-c)
+	//	time.Sleep(time.Millisecond * 500)
+	//}
+
+	//judge close channel
+	c := make(chan int, 10)
+	c <- 1
+	c <- 2
+	c <- 3
+	close(c)
+
+	for {
+		i, isClose := <-c
+		fmt.Println(i, " ", isClose)
+		time.Sleep(time.Millisecond * 500)
+	}
+}
+
+func testMakeMap() {
+	m := make(map[string]int, 10)
+	m["s"] = 10
+	fmt.Println("s :", m["s"])
+}
+
+type Compare struct {
+	A int
+	B string
+}
+
+func testStructCompare() {
+	a := Compare{A: 1, B: "a"}
+	b := Compare{A: 1, B: "a"}
+	fmt.Println(a == b)
+}
+
 func main() {
 	// flag.Set("log_dir", "./logs")
 	// flag.Set("alsologtostderr", "true")
@@ -1272,4 +1352,9 @@ func main() {
 	// testRoutine()
 	//transferObjecttoString()
 	//genEvmAccount()
+	//testLabel()
+	//testMemoryModel()
+	//testCloseChannel()
+	//testMakeMap()
+	testStructCompare()
 }
